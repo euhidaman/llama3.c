@@ -46,7 +46,7 @@ lr_decay_iters = max_iters
 min_lr = 0.0
 
 device = "cuda"
-dtype = "bfloat16"
+dtype = "float32"
 compile = True
 
 model_args = Llama3ModelArgs(
