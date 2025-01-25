@@ -33,44 +33,48 @@ from export import model_export
 
 # -----------------------------------------------------------------------------
 # I/O
-out_dir = "out"
+out_dir = "outmini"
 eval_interval = 2000
 log_interval = 1
 eval_iters = 100
-eval_only = False  # if True, script exits right after the first eval
-always_save_checkpoint = False  # if True, always save a checkpoint after each eval
-init_from = "scratch"  # 'scratch' or 'resume'
-# wandb logging
-wandb_log = False  # disabled by default
+eval_only = False
+always_save_checkpoint = False
+init_from = "scratch"
+wandb_log = False
 wandb_project = "llamac"
 wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
 # data
-batch_size = 128  # if gradient_accumulation_steps > 1, this is the micro-batch size
-max_seq_len = 256
-vocab_source = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
-vocab_size = 32000  # the Llama 2 tokenizer has 32K tokens
+batch_size = 128
+max_seq_len = 512
+vocab_source = "custom"  # Updated to "custom" for cl100k_base
+vocab_size = 100256  # Vocabulary size for cl100k_base
+
 # model
-dim = 288
-n_layers = 6
-n_heads = 6
-n_kv_heads = 6
-multiple_of = 32
-dropout = 0.0
+dim = 64
+n_layers = 5
+n_heads = 8
+n_kv_heads = 4
+multiple_of = 4
+dropout = 0.05
+
 # adamw optimizer
-gradient_accumulation_steps = 4  # used to simulate larger batch sizes
-learning_rate = 5e-4  # max learning rate
-max_iters = 100000  # total number of training iterations
-weight_decay = 1e-1
+gradient_accumulation_steps = 1
+learning_rate = 1e-3
+max_iters = 100000
+weight_decay = 0.01
 beta1 = 0.9
-beta2 = 0.95
-grad_clip = 1.0  # clip gradients at this value, or disable if == 0.0
+beta2 = 0.99
+grad_clip = 1.0
+
 # learning rate decay settings
-decay_lr = True  # whether to decay the learning rate
-warmup_iters = 1000  # how many steps to warm up for
+decay_lr = True
+warmup_iters = 1000
+
 # system
-device = "cuda"  # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1' etc., or try 'mps' on macbooks
-dtype = "bfloat16"  # float32|bfloat16|float16
-compile = True  # use PyTorch 2.0 to compile the model to be faster
+device = "cuda"
+dtype = "bfloat16"
+compile = True
 # -----------------------------------------------------------------------------
 config_keys = [
     k

@@ -8,16 +8,16 @@ from typing import Optional
 
 @dataclass
 class ModelArgs:
-    dim: int = 4096
-    n_layers: int = 32
-    n_heads: int = 32
-    n_kv_heads: int = 8  # Grouped Query Attention: fewer key/value heads
-    vocab_size: int = 32000
-    hidden_dim: Optional[int] = None
-    multiple_of: int = 256
-    norm_eps: float = 1e-5
-    max_seq_len: int = 2048
-    dropout: float = 0.0
+    dim: int = 64  # Reduced hidden dimension
+    n_layers: int = 5  # Fewer layers
+    n_heads: int = 8  # Number of attention heads
+    n_kv_heads: int = 4  # Grouped query attention
+    vocab_size: int = 100256  # Vocabulary size for cl100k_base
+    hidden_dim: Optional[int] = None  # Optional hidden dimension
+    multiple_of: int = 4  # Ensure hidden dimension is a multiple of this
+    norm_eps: float = 1e-5  # Normalization epsilon
+    max_seq_len: int = 512  # Maximum sequence length
+    dropout: float = 0.05  # Dropout rate
 
 
 class RMSNorm(nn.Module):
@@ -142,7 +142,7 @@ class Transformer(nn.Module):
         self.register_buffer("freqs_cos", freqs_cos, persistent=False)
         self.register_buffer("freqs_sin", freqs_sin, persistent=False)
 
-    def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None):
+    def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         _bsz, seqlen = tokens.shape
         h = self.tok_embeddings(tokens)
         freqs_cos = self.freqs_cos[:seqlen]
@@ -156,3 +156,20 @@ class Transformer(nn.Module):
                 logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
             return logits, loss
         return logits
+
+    def configure_optimizers(self, weight_decay, learning_rate, betas, device_type):
+        # Start with all of the candidate parameters
+        param_dict = {pn: p for pn, p in self.named_parameters()}
+        # Filter out those that do not require grad
+        param_dict = {pn: p for pn, p in param_dict.items() if p.requires_grad}
+        # Create optim groups. Any parameters that is 2D will be weight decayed, otherwise no.
+        decay_params = [p for n, p in param_dict.items() if p.dim() >= 2]
+        nodecay_params = [p for n, p in param_dict.items() if p.dim() < 2]
+        optim_groups = [
+            {'params': decay_params, 'weight_decay': weight_decay},
+            {'params': nodecay_params, 'weight_decay': 0.0}
+        ]
+        # Create AdamW optimizer
+        optimizer = torch.optim.AdamW(
+            optim_groups, lr=learning_rate, betas=betas)
+        return optimizer
