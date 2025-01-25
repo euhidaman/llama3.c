@@ -45,21 +45,21 @@ wandb_project = "llamac"
 wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
 # data
-batch_size = 128
-max_seq_len = 512
-vocab_source = "custom"  # Updated to "custom" for cl100k_base
+batch_size = 32  # Reduced batch size
+max_seq_len = 256  # Reduced sequence length
+vocab_source = "custom"
 vocab_size = 100256  # Vocabulary size for cl100k_base
 
 # model
-dim = 64
-n_layers = 5
-n_heads = 8
-n_kv_heads = 4
-multiple_of = 4
-dropout = 0.05
+dim = 64  # Small hidden dimension
+n_layers = 5  # Fewer layers
+n_heads = 8  # Number of attention heads
+n_kv_heads = 4  # Grouped query attention
+multiple_of = 4  # Ensure hidden dimension is a multiple of this
+dropout = 0.05  # Dropout rate
 
 # adamw optimizer
-gradient_accumulation_steps = 1
+gradient_accumulation_steps = 4  # Use gradient accumulation
 learning_rate = 1e-3
 max_iters = 100000
 weight_decay = 0.01
@@ -73,8 +73,8 @@ warmup_iters = 1000
 
 # system
 device = "cuda"
-dtype = "float32"  # bfloat16| float 16 | float32
-compile = True
+dtype = "bfloat16"  # Use mixed precision
+compile = False  # Disable model compilation to save memory
 # -----------------------------------------------------------------------------
 config_keys = [
     k
