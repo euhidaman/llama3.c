@@ -134,13 +134,17 @@ class Transformer(nn.Module):
         self.params = params
         self.tok_embeddings = nn.Embedding(params.vocab_size, params.dim)
         self.layers = nn.ModuleList(
-            [TransformerBlock(layer_id, params) for layer_id in range(params.n_layers)])
+            [TransformerBlock(layer_id, params)
+             for layer_id in range(params.n_layers)]
+        )
         self.norm = RMSNorm(params.dim, eps=params.norm_eps)
         self.output = nn.Linear(params.dim, params.vocab_size, bias=False)
         freqs_cos, freqs_sin = precompute_freqs_cis(
-            params.dim // params.n_heads, params.max_seq_len)
+            params.dim // params.n_heads, params.max_seq_len
+        )
         self.register_buffer("freqs_cos", freqs_cos, persistent=False)
         self.register_buffer("freqs_sin", freqs_sin, persistent=False)
+        self.last_loss = None  # Add this line to store the loss
 
     def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         _bsz, seqlen = tokens.shape
@@ -151,25 +155,13 @@ class Transformer(nn.Module):
             h = layer(h, freqs_cos, freqs_sin)
         h = self.norm(h)
         logits = self.output(h)
-        if targets is not None:
-            loss = F.cross_entropy(
-                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
-            return logits, loss
-        return logits
 
-    def configure_optimizers(self, weight_decay, learning_rate, betas, device_type):
-        # Start with all of the candidate parameters
-        param_dict = {pn: p for pn, p in self.named_parameters()}
-        # Filter out those that do not require grad
-        param_dict = {pn: p for pn, p in param_dict.items() if p.requires_grad}
-        # Create optim groups. Any parameters that is 2D will be weight decayed, otherwise no.
-        decay_params = [p for n, p in param_dict.items() if p.dim() >= 2]
-        nodecay_params = [p for n, p in param_dict.items() if p.dim() < 2]
-        optim_groups = [
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': nodecay_params, 'weight_decay': 0.0}
-        ]
-        # Create AdamW optimizer
-        optimizer = torch.optim.AdamW(
-            optim_groups, lr=learning_rate, betas=betas)
-        return optimizer
+        if targets is not None:
+            # Compute the loss and store it in self.last_loss
+            loss = F.cross_entropy(
+                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1
+            )
+            self.last_loss = loss.item()  # Store the loss value
+            return logits, loss
+        else:
+            return logits
