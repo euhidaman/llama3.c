@@ -230,35 +230,12 @@ def estimate_loss():
         for k in range(eval_iters):
             X, Y = next(batch_iter)
             with ctx:
-                # This will compute the loss and store it in model.last_loss
-                logits = model(X, Y)
-                loss = raw_model.last_loss  # Access the stored loss
-            losses[k] = loss
+                _, loss = model(X, Y)  # Unpack logits and loss
+            losses[k] = loss.item()  # Store the loss value
         out[split] = losses.mean()
     model.train()
     return out
 
-# learning rate decay scheduler (cosine with warmup)
-
-
-def get_lr(it):
-    # 1) linear warmup for warmup_iters steps
-    if it < warmup_iters:
-        return learning_rate * it / warmup_iters
-    # 2) if it > lr_decay_iters, return min learning rate
-    if it > lr_decay_iters:
-        return min_lr
-    # 3) in between, use cosine decay down to min learning rate
-    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
-    assert 0 <= decay_ratio <= 1
-    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
-    return min_lr + coeff * (learning_rate - min_lr)
-
-
-# logging
-if wandb_log and master_process:
-    import wandb
-    wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
 # training loop
 train_batch_iter = iter_batches(split="train")
@@ -277,7 +254,8 @@ while True:
     if iter_num % eval_interval == 0 and master_process:
         losses = estimate_loss()
         print(
-            f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+            f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
+        )
         if wandb_log:
             try:
                 wandb.log(
@@ -288,7 +266,8 @@ while True:
                         "loss/val": losses["val"],
                         "lr": lr,
                         "mfu": running_mfu * 100,  # convert to percentage
-                    }, step=iter_num
+                    },
+                    step=iter_num,
                 )
             except Exception as e:
                 print(f"logging to wandb failed: {e}")
@@ -314,14 +293,9 @@ while True:
     # and using the GradScaler if data type is float16
     for micro_step in range(gradient_accumulation_steps):
         if ddp:
-            # in DDP training we only need to sync gradients at the last micro step.
-            # the official way to do this is with model.no_sync() context manager, but
-            # I really dislike that this bloats the code and forces us to repeat code
-            # looking at the source of that context manager, it just toggles this variable
             model.require_backward_grad_sync = micro_step == gradient_accumulation_steps - 1
         with ctx:
-            logits = model(X, Y)
-            loss = raw_model.last_loss
+            _, loss = model(X, Y)  # Unpack logits and loss
             loss = loss / gradient_accumulation_steps
         # immediately async prefetch next batch while model is doing the forward pass on the GPU
         X, Y = next(train_batch_iter)

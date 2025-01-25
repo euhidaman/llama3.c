@@ -144,7 +144,6 @@ class Transformer(nn.Module):
         )
         self.register_buffer("freqs_cos", freqs_cos, persistent=False)
         self.register_buffer("freqs_sin", freqs_sin, persistent=False)
-        self.last_loss = None  # Add this line to store the loss
 
     def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         _bsz, seqlen = tokens.shape
@@ -157,11 +156,10 @@ class Transformer(nn.Module):
         logits = self.output(h)
 
         if targets is not None:
-            # Compute the loss and store it in self.last_loss
+            # Compute the loss and return it
             loss = F.cross_entropy(
                 logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1
             )
-            self.last_loss = loss.item()  # Store the loss value
             return logits, loss
         else:
             return logits
