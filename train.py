@@ -230,9 +230,10 @@ def estimate_loss():
         for k in range(eval_iters):
             X, Y = next(batch_iter)
             with ctx:
+                # This will compute the loss and store it in model.last_loss
                 logits = model(X, Y)
-                loss = raw_model.last_loss
-            losses[k] = loss.item()
+                loss = raw_model.last_loss  # Access the stored loss
+            losses[k] = loss
         out[split] = losses.mean()
     model.train()
     return out
