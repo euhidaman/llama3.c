@@ -1,6 +1,7 @@
 import os
 import struct
 import torch
+import numpy as np
 from model import Transformer, ModelArgs
 
 

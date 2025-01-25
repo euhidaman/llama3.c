@@ -8,6 +8,7 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from tokenizer import Tokenizer
+import random
 
 DATA_CACHE_DIR = "data"
 
