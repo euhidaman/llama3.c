@@ -73,7 +73,7 @@ warmup_iters = 1000
 
 # system
 device = "cuda"
-dtype = "bfloat16"
+dtype = "float32"  # bfloat16| float 16 | float32
 compile = True
 # -----------------------------------------------------------------------------
 config_keys = [
