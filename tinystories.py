@@ -9,6 +9,7 @@ from functools import partial
 import numpy as np
 import requests
 import tiktoken
+import torch  # Import PyTorch here
 from tqdm import tqdm
 
 from tokenizer import Tokenizer
